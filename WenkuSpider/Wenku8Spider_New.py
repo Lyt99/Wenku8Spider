@@ -4,12 +4,14 @@ import re
 import bs4
 import os
 from multiprocessing.dummy import Pool as ThreadPool
+#from multiprocessing import Pool
 import threading
 import time
 import random
 import requests
 import time
 import argparse
+import shutil
 
 #设置编码
 reload(sys)
@@ -45,11 +47,6 @@ searchurl  = 'http://www.wenku8.com/modules/article/search.php' #搜索
 mainurl = 'http://www.wenku8.com/'#主站页面
 
 
-#(伪)全局变量
-threads = 3 #每个操作的线程数
-enable_sort = False
-
-
 
 #Utils
 
@@ -70,7 +67,20 @@ def getContent(url, params = {}):#传入url和encode好的data，访问并返回
     s = requests.Session()
     header = {'User-Agent' : ua}
 
-    r = s.get(url, params = params, headers = header)
+    tried = 0
+    while(1):
+        try:
+            r = s.get(url, params = params, headers = header, timeout = 10)
+            break
+        except requests.RequestException:
+            tried += 1
+            if tried >= 3:
+                printMessage(u'错误', u'访问 %s 失败' % url)
+                break
+
+    if tried >= 3:
+        return ''
+
     if url.find('.jpg'):
         return r.content
     r.encoding = 'gbk'
@@ -175,10 +185,11 @@ def getBookUrlByName(name):#通过站内搜索确定小说，返回小说目录�
 
 def getBookUrlById(id):#通过小说id来获取url
     base = 'http://www.wenku8.com/novel/%s/%s/index.htm'
-    if id > 0 & id < 1000: #1-999 dirid为1
+    if (id > 0) and (id < 1000): #1-999 dirid为0
         return base % ('0', id)
-    if id >= 1000 & id <= 1950:#截止到2015.8.20
+    if (id >= 1000) and (id <= 1950):#截止到2015.8.20
         return base % ('1', id)
+    print 'search'
     for i in range(1,11):#遍历2-10
         r = requests.get(base % (str(i), id))
         if r.status_code == 200:
@@ -199,7 +210,7 @@ def downloadChapterContent(arg):#path = basepath + bookname + '\'|param(id, chap
     
     con = getChapterContent('%s.htm' % (url + param[0]))
     download = list()
-    writeToFile((con[0], path + '%s - %s.txt' % (param[0], param[1])))
+    writeToFile((con[0], path + '%s - %s.txt' % (param[0], param[1])))#先把小说内容下载下来
     for i in con[1]:#插图
         download.append((i, path + '%s - %s\%s' % (param[0], param[1], os.path.basename(i))))
 
@@ -208,7 +219,7 @@ def downloadChapterContent(arg):#path = basepath + bookname + '\'|param(id, chap
 
     tp = ThreadPool(threads)
 
-    tp.map_async(writeToFile, download)
+    tp.map(writeToFile, download)
 
     tp.close()
 
@@ -216,12 +227,22 @@ def downloadChapterContent(arg):#path = basepath + bookname + '\'|param(id, chap
 def downloadBookContent(url, path):#下载整本小说 url:小说目录 path:basepath
     #sys.stdout.flush()
 
+    if enable_sort:
+        printMessage(u'提示', u'启用卷名排序')
+
+    printMessage(u'提示', u'使用 %s 线程进行下载' % str(threads))
     content = getContent(url)
     bookname = getBookName(content)
     bookIndex = getBookIndex(content)
     baseurl = os.path.dirname(url) + '/'
     id = getBookIdByUrl(url)
     sort = 0;
+
+    bookpath = "%s - %s\\" % (path + id, bookname)
+    
+    if os.path.exists(bookpath):#如果存在目录先删除
+        printMessage(u'提示', u'删除原文件夹 %s' % bookpath)
+        shutil.rmtree(bookpath)
 
     #print u'[提示 - 整书]开始下载 %s\n' % bookname,
     printMessage(u'提示',u'开始下载小说 %s' % bookname)
@@ -235,7 +256,7 @@ def downloadBookContent(url, path):#下载整本小说 url:小说目录 path:bas
                 bookp = '%s - %s' % (str(sort),book[0])
             else:
                 bookp = book[0]
-            ele = (baseurl, chapter, r'%s - %s\%s\\' % (path + id, bookname,bookp))
+            ele = (baseurl, chapter, '%s\\' % (bookpath + bookp))
             downloadlist.append(ele)
 
     td = ThreadPool(threads)
@@ -247,7 +268,7 @@ def downloadBookContent(url, path):#下载整本小说 url:小说目录 path:bas
     while threading.active_count() - 1:
         time.sleep(1)
 
-    print u'[提示 - 整书]下载 %s 结束, 耗时 %s 秒\n' % (bookname, str(time.clock()))
+    printMessage(u'[提示 - 整书]',u'下载 %s 结束, 耗时 %s 秒' % (bookname, str(time.clock())))
     #sys.stdout.flush()
 
 
@@ -255,6 +276,9 @@ def main():
     print u'轻小说文库(wenku8.com)小说爬虫 V1.1 By Lyt99\n\n',
 
     parser = argparse.ArgumentParser()
+
+    global threads
+    global enable_sort
 
     parser.add_argument('searchpattern', help = u'轻小说ID/名称', type = str)
     parser.add_argument('-bn', '--bookname',help = u'使用小说名称搜索', action='store_true')
@@ -264,12 +288,7 @@ def main():
     parser.add_argument('-s', '--sort', help = u'卷文件夹名中加入数字进行排序，以保证在资源管理器中的顺序', action = 'store_true')
     args = parser.parse_args()
 
-    if args.threads:
-        threads = args.threads
-    else:
-        threads = 3
 
-    printMessage(u'提示', u'使用 %s 线程进行下载' % str(threads))
 
     if args.bookname:#小说名称搜索
         url = getBookUrlByName(args.searchpattern)
@@ -278,7 +297,7 @@ def main():
             sys.exit(0)
     else:#小说id
         if args.searchpattern.isdigit():
-            url = getBookUrlById(args.searchpattern)
+            url = getBookUrlById(int(args.searchpattern))
             if url == None:
                 printMessage(u'错误', u'ID为 %s 的小说没有找到' % args.searchpattern)
                 sys.exit(0)
@@ -286,12 +305,19 @@ def main():
             printMessage(u'错误', u'请输入正确格式的小说ID')
             sys.exit(0)
 
-    sort = args.sort#排序
+    enable_sort = args.sort#排序
 
     if args.dir:#下载目录
         dir = os.path.abspath(args.dir) + '\\'
     else:
         dir = os.path.abspath('novel') + '\\'
+
+    if args.threads:
+        threads = args.threads
+    else:
+        threads = 3
+
+    
 
     downloadBookContent(url,dir)
 
