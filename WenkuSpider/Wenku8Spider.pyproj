@@ -4,13 +4,14 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>57600577-5bc5-4130-a9e8-81b4b65f2c84</ProjectGuid>
-    <ProjectHome>.</ProjectHome>
+    <ProjectHome>
+    </ProjectHome>
     <StartupFile>Wenku8Spider_New.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
-    <Name>WenkuSpider</Name>
+    <Name>Wenku8Spider</Name>
     <RootNamespace>WenkuSpider</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -28,7 +29,7 @@
     <Compile Include="Wenku8Spider_New.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="WenkuSpider_Old.py" />
+    <Compile Include="Wenku8Spider_Old.py" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

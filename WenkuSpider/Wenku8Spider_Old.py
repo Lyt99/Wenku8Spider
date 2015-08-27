@@ -21,7 +21,7 @@ header = { 'User-Agnet' : 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'} #cus
 articleurl = 'http://www.wenku8.com/modules/article/articlelist.php';
 
 
-print u"Wenku Spider by Lyt99 Wenku8轻小说爬虫 0.1"
+print u"Wenku8 Spider by Lyt99 Wenku8轻小说爬虫 0.1"
 
 def makedir(path):
     if os.path.exists(path) == False:
