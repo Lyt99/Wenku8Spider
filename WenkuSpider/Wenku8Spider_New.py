@@ -276,14 +276,14 @@ def main():
         if url == None:
             printMessage(u'错误', u'未查找到小说 %s，可能不存在或者有多个对应选项' % args.Book)
             sys.exit(0)
-    else:
+    else:#小说id
         if args.searchpattern.isdigit():
             url = getBookUrlById(args.searchpattern)
             if url == None:
-                printMessage(u'错误', 'ID为 %s 的小说没有找到' % args.searchpattern)
+                printMessage(u'错误', u'ID为 %s 的小说没有找到' % args.searchpattern)
                 sys.exit(0)
         else:
-            printMessage(u'错误', '请输入正确格式的小说ID')
+            printMessage(u'错误', u'请输入正确格式的小说ID')
             sys.exit(0)
 
     sort = args.sort#排序
