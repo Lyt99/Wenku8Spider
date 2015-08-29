@@ -42,12 +42,13 @@ matchpattern_articlelist_book = '<a href="http://www\.wenku8\.com/book/(\d{0,})\
 #其它正则
 matchpattern_without = "[\\/:*?\"<>|]+"
 #其它定义
-user_agents = [ 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'] #User-Agnet列表，随机选择使用
+user_agents = ['Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.19 (KHTML, like Gecko) Ubuntu/11.10 Chromium/18.0.1025.168 Chrome/18.0.1025.168 Safari/535.19','Mozilla/5.0 (Windows NT 5.1; rv:5.0.1) Gecko/20100101 Firefox/5.0.1','Mozilla/5.0 (Windows NT 6.1; rv:2.0b7pre) Gecko/20100921 Firefox/4.0b7pre','Opera/9.80 (Windows NT 6.2; Win64; x64) Presto/2.12.388 Version/12.15','Mozilla/5.0 (Linux; U; Android 4.1.2; en-us; SCH-I535 Build/JZO54K) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30','Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1','Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; .NET CLR 1.1.4322)','Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; MRA 5.8 (build 4157); .NET CLR 2.0.50727; AskTbPTV/5.11.3.15590)','Mozilla/5.0 (Windows NT 5.1; rv:21.0) Gecko/20100101 Firefox/21.0','Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; .NET CLR 1.1.4322)'] #User-Agnet列表，随机选择使用
 articleurl = 'http://www.wenku8.com/modules/article/articlelist.php';#所有小说目录，附加数据:page
 searchurl  = 'http://www.wenku8.com/modules/article/search.php' #搜索
 mainurl = 'http://www.wenku8.com/'#主站页面
 
-
+global pics
+pics = []
 
 #Utils
 
@@ -214,19 +215,12 @@ def downloadchaptercontent(arg):#path = basepath + bookname + '\'|param(id, chap
     path = arg[2]
     
     con = getchaptercontent('%s.htm' % (url + param[0]))
-    download = list()
     writetofile((con[0], path + '%s - %s.txt' % (param[0], removechar(param[1]))))#先把小说内容下载下来
     for i in con[1]:#插图
-        download.append((i, path + '%s - %s\%s' % (param[0], removechar(param[1]), os.path.basename(i))))
+        pics.append((i, path + '%s - %s\%s' % (param[0], removechar(param[1]), os.path.basename(i))))
 
 
     print u'[提示 - 章节]下载 %s 开始\n' % param[1],
-
-    tp = ThreadPool(THREADS)
-
-    tp.map(writetofile, download)
-
-    tp.close()
 
     
 def downloadbookcontent(url, path):#下载整本小说 url:小说目录 path:basepath
@@ -270,6 +264,14 @@ def downloadbookcontent(url, path):#下载整本小说 url:小说目录 path:bas
 
     td.close()
 
+    while threading.active_count() - 1:
+        time.sleep(1)
+
+    #独立下载插图。采用5线程。减少连接数。
+    printmessage('提示 - 插图','下载 插图 中…')
+    tp = ThreadPool(5)
+    tp.map_async(writetofile, pic)
+    tp.close()
     while threading.active_count() - 1:
         time.sleep(1)
 
