@@ -19,9 +19,11 @@ sys.setdefaultencoding("gbk")
 #设置完成
 
 #Wenku8Spider 小说抓取工具 By Lyt99
+#Special thanks to sffxzzp
 #以小说目录页面为准抓取信息
 #测试环境:Python 2.7 64bit
 #多线程有点(各种)小问题，不过线程数量调少点儿或者某些玄学因素就能正常了
+#↑应该没问题了，只要你不作死
 #如果还是不行，那就用隔壁的单线程版本(WenkuSpider_Old.py)
 
 time.clock()
@@ -47,8 +49,8 @@ articleurl = 'http://www.wenku8.com/modules/article/articlelist.php';#所有小�
 searchurl  = 'http://www.wenku8.com/modules/article/search.php' #搜索
 mainurl = 'http://www.wenku8.com/'#主站页面
 
-global pics
-pics = []
+global PICS
+PICS = []
 
 #Utils
 
@@ -217,7 +219,7 @@ def downloadchaptercontent(arg):#path = basepath + bookname + '\'|param(id, chap
     con = getchaptercontent('%s.htm' % (url + param[0]))
     writetofile((con[0], path + '%s - %s.txt' % (param[0], removechar(param[1]))))#先把小说内容下载下来
     for i in con[1]:#插图
-        pics.append((i, path + '%s - %s\%s' % (param[0], removechar(param[1]), os.path.basename(i))))
+        PICS.append((i, path + '%s - %s\%s' % (param[0], removechar(param[1]), os.path.basename(i))))
 
 
     print u'[提示 - 章节]下载 %s 开始\n' % param[1],
@@ -267,9 +269,9 @@ def downloadbookcontent(url, path):#下载整本小说 url:小说目录 path:bas
     while threading.active_count() - 1:
         time.sleep(1)
 
-    #独立下载插图。采用5线程。减少连接数。
+    #独立下载插图。线程数由用户设定(所以出事儿不是我的锅)
     printmessage('提示 - 插图','下载 插图 中…')
-    tp = ThreadPool(5)
+    tp = ThreadPool(THREADS)
     tp.map_async(writetofile, pic)
     tp.close()
     while threading.active_count() - 1:
