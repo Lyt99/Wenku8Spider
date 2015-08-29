@@ -52,6 +52,10 @@ mainurl = 'http://www.wenku8.com/'#主站页面
 global PICS
 PICS = []
 
+global PICTURES
+PICTURES = [0,0]
+mutex = threading.Lock()
+
 #Utils
 
 def printmessage(prefix, content):
@@ -90,11 +94,15 @@ def getcontent(url, params = {}):#传入url和encode好的data，访问并返回
         return r.content
     r.encoding = 'gbk'
     return r.text
-    
+
 def writetofile(param):#写到文件，支持直接内容或者url
     #url(content) path 0,1
-    sys.stdout.flush()#刷新缓冲区
+    #sys.stdout.flush()#刷新缓冲区
     #print u'开始下载 %s' % param[1]
+
+    if PICTURES[1] != 0:
+        PICTURES[0] += 1
+        printmessage(u'提示 - 插图',r'%s/%s' % (str(PICTURES[0]), str(PICTURES[1])))
 
     basepath = os.path.dirname(param[1])
     makedir(basepath)
@@ -108,9 +116,12 @@ def writetofile(param):#写到文件，支持直接内容或者url
     with open(param[1],type) as f:
         f.write(content)
 
+
+
+
     #print u'[提示 - 写文件]%s 下载完成\n' % param[1],
 
-    sys.stdout.flush()#刷新缓冲区
+    #sys.stdout.flush()#刷新缓冲区
 
 def removechar(string):
     #占位
@@ -221,7 +232,6 @@ def downloadchaptercontent(arg):#path = basepath + bookname + '\'|param(id, chap
     for i in con[1]:#插图
         PICS.append((i, path + '%s - %s\%s' % (param[0], removechar(param[1]), os.path.basename(i))))
 
-
     print u'[提示 - 章节]下载 %s 开始\n' % param[1],
 
     
@@ -262,20 +272,24 @@ def downloadbookcontent(url, path):#下载整本小说 url:小说目录 path:bas
 
     td = ThreadPool(THREADS)
 
-    td.map_async(downloadchaptercontent, downloadlist);
+    td.map(downloadchaptercontent, downloadlist);
 
     td.close()
 
     while threading.active_count() - 1:
         time.sleep(1)
 
-    #独立下载插图。线程数由用户设定(所以出事儿不是我的锅)
-    printmessage('提示 - 插图','下载 插图 中…')
-    tp = ThreadPool(THREADS)
-    tp.map_async(writetofile, pic)
-    tp.close()
-    while threading.active_count() - 1:
-        time.sleep(1)
+    if not NO_PICTURE:
+        #独立下载插图。线程数由用户设定(所以出事儿不是我的锅)
+        printmessage(u'提示 - 插图',u'下载 插图 中，共 %s 张' % str(len(PICS)))
+        PICTURES[1] = len(PICS)
+        tp = ThreadPool(THREADS)
+
+        tp.map_async(writetofile, PICS)
+
+        tp.close()
+        while threading.active_count() - 1:
+            time.sleep(1)
 
     printmessage(u'提示 - 整书',u'下载 %s 结束, 耗时 %s 秒' % (bookname, str(time.clock())))
     #sys.stdout.flush()
@@ -288,6 +302,7 @@ def main():
 
     global THREADS
     global ENABLE_SORT
+    global NO_PICTURE
 
     parser.add_argument('searchpattern', help = u'轻小说ID/名称', type = str)
     parser.add_argument('-bn', '--bookname',help = u'使用小说名称搜索', action='store_true')
@@ -295,6 +310,7 @@ def main():
     #parser.add_argument('--log', help = u'在小说目录下生成下载log', action = 'store_true')
     parser.add_argument('-d', '--dir', help = u'小说下载到的目录，默认使用运行目录下的novel目录', type = str)
     parser.add_argument('-s', '--sort', help = u'卷文件夹名中加入数字进行排序，以保证在资源管理器中的顺序', action = 'store_true')
+    parser.add_argument('-np', '--no_picture', help = u'不下载小说插图', action = 'store_true')
     args = parser.parse_args()
 
 
@@ -315,6 +331,7 @@ def main():
             sys.exit(0)
 
     ENABLE_SORT = args.sort#排序
+    NO_PICTURE = args.no_picture
 
     if args.dir:#下载目录
         dir = os.path.abspath(args.dir) + '\\'
@@ -325,6 +342,8 @@ def main():
         THREADS = args.threads
     else:
         THREADS = 3
+
+    PICTURES = [0,0]
 
     downloadbookcontent(url,dir)
 
