@@ -4,7 +4,6 @@ import re
 import bs4
 import os
 from multiprocessing.dummy import Pool as ThreadPool
-from multiprocessing import Pool
 import threading
 import time
 import random
@@ -54,7 +53,6 @@ PICS = []
 
 global PICTURES
 PICTURES = [0,0]
-mutex = threading.Lock()
 
 #Utils
 
