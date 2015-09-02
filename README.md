@@ -1,6 +1,7 @@
 # Wenku8Spider(Wenku8轻小说爬虫)
 A web spider (actually a novel downloader) for wenku8.com  
-wenku8.com 的 网页爬虫(小说下载器)
+wenku8.com 的 网页爬虫(小说下载器)  
+python2.7 recommended
 
 #Depends on(依赖)
 BeautifulSoup4 and Requests
