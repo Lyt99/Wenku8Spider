@@ -23,6 +23,7 @@ sys.setdefaultencoding("gbk")
 #测试环境:Python 2.7 64bit
 #多线程有点(各种)小问题，不过线程数量调少点儿或者某些玄学因素就能正常了
 #↑应该没问题了，只要你不作死
+#↑还是有问题啊，不过加个-u开关重新跑一遍就能补全了233333
 #如果还是不行，那就用隔壁的单线程版本(WenkuSpider_Old.py)
 
 time.clock()
@@ -105,6 +106,10 @@ def writetofile(param):#写到文件，支持直接内容或者url
     basepath = os.path.dirname(param[1])
     makedir(basepath)
 
+    if UPDATE and os.path.isfile(param[1]):
+        printmessage(u'提示 - 更新', u'已跳过 %s' % os.path.basename(param[1]))
+        return
+
     if re.match(matchpattern_url, param[0]):
         content = getcontent(param[0])
         type = 'wb'
@@ -131,6 +136,8 @@ def getbookname(content):#获取小说名称
     return re.search(matchpattern_bookname,content).group(1)
 
 def getbookindex(content):#获取小说目录，返回['卷名',[('id','章1'), ('id', '章2'), ...], ...]类推
+
+    printmessage(u'提示',u'获取小说目录')
     #因为懒所以直接从旧的抄过来
     bs = bs4.BeautifulSoup(content,'html.parser',from_encoding = 'gbk')
     
@@ -226,11 +233,11 @@ def downloadchaptercontent(arg):#path = basepath + bookname + '\'|param(id, chap
     path = arg[2]
     
     con = getchaptercontent('%s.htm' % (url + param[0]))
+    printmessage(u'提示 - 章节',u'下载 %s 开始' % param[1])
     writetofile((con[0], path + '%s - %s.txt' % (param[0], removechar(param[1]))))#先把小说内容下载下来
     for i in con[1]:#插图
         PICS.append((i, path + '%s - %s\%s' % (param[0], removechar(param[1]), os.path.basename(i))))
 
-    print u'[提示 - 章节]下载 %s 开始\n' % param[1],
 
     
 def downloadbookcontent(url, path):#下载整本小说 url:小说目录 path:basepath
@@ -238,6 +245,9 @@ def downloadbookcontent(url, path):#下载整本小说 url:小说目录 path:bas
 
     if ENABLE_SORT:
         printmessage(u'提示', u'启用卷名排序')
+
+    if UPDATE:
+        printmessage(u'提示',u'启用更新模式')
 
     printmessage(u'提示', u'使用 %s 线程进行下载' % str(THREADS))
     content = getcontent(url)
@@ -249,7 +259,7 @@ def downloadbookcontent(url, path):#下载整本小说 url:小说目录 path:bas
 
     bookpath = "%s - %s\\" % (path + id, removechar(bookname))
     
-    if os.path.exists(bookpath):#如果存在目录先删除
+    if os.path.exists(bookpath) and not UPDATE:#如果存在目录先删除
         printmessage(u'提示', u'删除原文件夹 %s' % bookpath)
         shutil.rmtree(bookpath)
 
@@ -301,6 +311,7 @@ def main():
     global THREADS
     global ENABLE_SORT
     global NO_PICTURE
+    global UPDATE
 
     parser.add_argument('searchpattern', help = u'轻小说ID/名称', type = str)
     parser.add_argument('-bn', '--bookname',help = u'使用小说名称搜索', action='store_true')
@@ -309,6 +320,7 @@ def main():
     parser.add_argument('-d', '--dir', help = u'小说下载到的目录，默认使用运行目录下的novel目录', type = str)
     parser.add_argument('-s', '--sort', help = u'卷文件夹名中加入数字进行排序，以保证在资源管理器中的顺序', action = 'store_true')
     parser.add_argument('-np', '--no_picture', help = u'不下载小说插图', action = 'store_true')
+    parser.add_argument('-u', '--update', help = u'保留原有部分，更新不存在的部分', action = 'store_true')
     args = parser.parse_args()
 
 
@@ -330,6 +342,7 @@ def main():
 
     ENABLE_SORT = args.sort#排序
     NO_PICTURE = args.no_picture
+    UPDATE = args.update
 
     if args.dir:#下载目录
         dir = os.path.abspath(args.dir) + '\\'
