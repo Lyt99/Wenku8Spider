@@ -298,7 +298,7 @@ def downloadbookcontent(url, path):#下载整本小说 url:小说目录 path:bas
 
 
 def main():
-    print u'轻小说文库(wenku8.com)小说爬虫 V1.1 By Lyt99\n\n',
+    print u'轻小说文库(wenku8.com)小说爬虫 V1.2 By Lyt99\n\n',
 
     parser = argparse.ArgumentParser()
 
@@ -322,7 +322,7 @@ def main():
     if not args.bookid:#小说名称搜索
         url = getbookurlbyname(args.searchpattern)
         if url == None:
-            printmessage(u'错误', u'未查找到小说 %s，可能不存在或者有多个对应选项' % args.searchpattern)
+            printmessage(u'错误', u'未查找到小说 %s，本地数据库中不存在' % args.searchpattern)
             sys.exit(0)
     else:#小说id
         if args.searchpattern.isdigit():
