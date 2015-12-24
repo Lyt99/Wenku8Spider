@@ -11,6 +11,7 @@ import requests
 import time
 import argparse
 import shutil
+import math
 
 #设置编码
 reload(sys)
@@ -20,6 +21,7 @@ sys.setdefaultencoding("gbk")
 #Wenku8Spider 小说抓取工具 By Lyt99
 #Special thanks to sffxzzp
 #以小说目录页面为准抓取信息
+#2015.12.24 wenku8.com停止使用 R.I.P
 #测试环境:Python 2.7 64bit
 #多线程有点(各种)小问题，不过线程数量调少点儿或者某些玄学因素就能正常了
 #↑应该没问题了，只要你不作死
@@ -33,7 +35,7 @@ time.clock()
 matchpattern_title = r'<td class="vcss" colspan="4">(.+)</td>'#标题(用于判断)
 matchpattern_chapter = '<td class=\"ccss\"><a href=\"(\d{0,}).htm\">(.+)</a></td>'#章节(用于判断)
 matchpattern_pic = '<img src=\"(http://pic.wenku8.com/pictures/.+?)\" border=\"0\" class=\"imagecontent\">'#图片 获取图片地址
-matchpattern_bookname = '<a href="http://www.wenku8.com/book/.+\.htm">(.+?)</a>';#书名 获取书名
+matchpattern_bookname = '<a href="http://www.wenku8.com/book/.+\.htm">(.+?)</a>'#书名 获取书名
 matchpattern_picture = '<div class="divimage"><a href="http://pic.wenku8.com/pictures/\d+/\d+/\d+/(\d+.jpg)".+?</a></div>'#插图
 matchpattern_clear = '<.+>.+</.+>|</div>|<div id="content">|<br/>'#章节多余的html标签
 matchpattern_chapterindex = '<a href="(http://www.wenku8.com/novel/\d+/\d+/index.htm)">.+?</a>'#从小说主页面到小说目录页面的链接
@@ -48,6 +50,7 @@ user_agents = ['Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.19 (KHTML, like Ge
 articleurl = 'http://www.wenku8.com/modules/article/articlelist.php';#所有小说目录，附加数据:page
 searchurl  = 'http://www.wenku8.com/modules/article/search.php' #搜索
 mainurl = 'http://www.wenku8.com/'#主站页面
+database = 'Database.txt'
 
 global PICS
 PICS = []
@@ -195,30 +198,21 @@ def getchaptercontent(url):#返回处理完成的内容(tuple)，为章节内容
 
     return (con,pic)
 
-def getbookurlbyname(name):#通过站内搜索确定小说，返回小说目录页面的url
-    data = {'searchtype' : 'articlename', 'searchkey' : name}#访问页面时的数据
-    content = getcontent(searchurl, data)
-    if content == None:
-        return None;
+def getbookurlbyname(name):#通过本地数据库搜索小说
+    with open(database) as data:
+        for curline in data:
+            info = curline.split('/')
+            if info[0].find(name) != -1:
+                return getbookurlbyid(info[1].strip('\n'))
 
-    match = re.findall(matchpattern_chapterindex, content)
-    if len(match) == 0:#没有搜索到
         return None
-    else:
-        return match[0]
+
 
 def getbookurlbyid(id):#通过小说id来获取url
     base = 'http://www.wenku8.com/novel/%s/%s/index.htm'
-    if (id > 0) and (id < 1000): #1-999 dirid为0
-        return base % ('0', id)
-    if (id >= 1000) and (id <= 1950):#截止到2015.8.20
-        return base % ('1', id)
-    print 'search'
-    for i in range(1,11):#遍历2-10
-        r = requests.get(base % (str(i), id))
-        if r.status_code == 200:
-            return base % (str(i), id)
-    return None
+    addr = base % (str(int(math.floor(int(id) / 1000))), id)
+    printmessage(u'提示', u'已检索到地址: %s ' % addr)
+    return addr
 
 def getbookidbyurl(url):#通过小说url获取id
     #日常占位
@@ -314,7 +308,7 @@ def main():
     global UPDATE
 
     parser.add_argument('searchpattern', help = u'轻小说ID/名称', type = str)
-    parser.add_argument('-bn', '--bookname',help = u'使用小说名称搜索', action='store_true')
+    parser.add_argument('-id', '--bookid',help = u'使用小说ID搜索', action='store_true')
     parser.add_argument('-t', '--threads', help = u'线程数，默认为3', type = int)
     #parser.add_argument('--log', help = u'在小说目录下生成下载log', action = 'store_true')
     parser.add_argument('-d', '--dir', help = u'小说下载到的目录，默认使用运行目录下的novel目录', type = str)
@@ -325,10 +319,10 @@ def main():
 
 
 
-    if args.bookname:#小说名称搜索
+    if not args.bookid:#小说名称搜索
         url = getbookurlbyname(args.searchpattern)
         if url == None:
-            printmessage(u'错误', u'未查找到小说 %s，可能不存在或者有多个对应选项' % args.Book)
+            printmessage(u'错误', u'未查找到小说 %s，可能不存在或者有多个对应选项' % args.searchpattern)
             sys.exit(0)
     else:#小说id
         if args.searchpattern.isdigit():
