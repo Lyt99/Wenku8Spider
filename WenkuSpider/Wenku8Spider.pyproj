@@ -31,6 +31,9 @@
     </Compile>
     <Compile Include="Wenku8Spider_Old.py" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Database.txt" />
+  </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
