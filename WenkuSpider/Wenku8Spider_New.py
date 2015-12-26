@@ -51,6 +51,7 @@ articleurl = 'http://www.wenku8.com/modules/article/articlelist.php';#所有小�
 searchurl  = 'http://www.wenku8.com/modules/article/search.php' #搜索
 mainurl = 'http://www.wenku8.com/'#主站页面
 database = 'Database.txt'
+realpath = os.path.split(os.path.realpath(__file__))[0]
 
 global PICS
 PICS = []
@@ -199,7 +200,7 @@ def getchaptercontent(url):#返回处理完成的内容(tuple)，为章节内容
     return (con,pic)
 
 def getbookurlbyname(name):#通过本地数据库搜索小说
-    with open(database) as data:
+    with open(realpath + '\\' + database) as data:
         for curline in data:
             info = curline.split('/')
             if info[0].find(name) != -1:
@@ -311,7 +312,7 @@ def main():
     parser.add_argument('-id', '--bookid',help = u'使用小说ID搜索', action='store_true')
     parser.add_argument('-t', '--threads', help = u'线程数，默认为3', type = int)
     #parser.add_argument('--log', help = u'在小说目录下生成下载log', action = 'store_true')
-    parser.add_argument('-d', '--dir', help = u'小说下载到的目录，默认使用运行目录下的novel目录', type = str)
+    parser.add_argument('-d', '--dir', help = u'小说下载到的目录，默认使用当前目录', type = str)
     parser.add_argument('-s', '--sort', help = u'卷文件夹名中加入数字进行排序，以保证在资源管理器中的顺序', action = 'store_true')
     parser.add_argument('-np', '--no_picture', help = u'不下载小说插图', action = 'store_true')
     parser.add_argument('-u', '--update', help = u'保留原有部分，更新不存在的部分', action = 'store_true')
@@ -341,7 +342,7 @@ def main():
     if args.dir:#下载目录
         dir = os.path.abspath(args.dir) + '\\'
     else:
-        dir = os.path.abspath('novel') + '\\'
+        dir = os.getcwd() + '\\'
 
     if args.threads:
         THREADS = args.threads
